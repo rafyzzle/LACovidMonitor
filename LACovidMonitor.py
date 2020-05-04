@@ -102,6 +102,44 @@ def getReports(mainReportPage, cache = False, cacheDir = DEFAULT_CACHE_DIR):
             
     return reportDatas
 
+def parseReports(reports):
+    parsed = []
+    repNum = 0
+    for report in reports:
+
+        # Get date, (this doesn't always work fully yet)
+        match = re.search(r't(?P<z>[\w]+[\s][0-9]{2}, 2020)', report)
+        rDate = match[0] if match else '???'
+        
+        # Get # Hospitalized (Cumalative)
+        match = re.search(r'Hospitalized \(Ever\)\\t(?P<numb>[0-9]+)', report)
+        rHospitalized = int(match[1]) if match else 0
+
+        # Get # passed away from COVID for this day
+        z = {'One':1,'Two':2,'Three':3,'Four':4,'Five':5,'Six':6,'Seven':7,'Eight':8,'Nine':9}
+        match = re.search(r'([0-9]+|One|Two|Three|Four|Five|Six|Seven|Eight|Nine) New Death', report)
+        if match:
+            try:
+                rDeaths = int(match[1])
+            except:
+                rDeaths = z[match[1]]
+        else:
+            rDeaths = 0
+        
+        # TODO:
+        """
+        match = re.search(r'testing results [\w\s,%]+', report)
+        if match:
+            print(match)  
+        else:
+            print('No results.')
+        """
+        
+        parsed.append({'repNum': repNum, 'date': rDate, 'tHosp': rHospitalized, 'dDeaths': rDeaths})
+        repNum = repNum + 1
+        
+    return parsed
+
 def run(saveFigs=False, useCached=True):
     if useCached:
         reports = getReportsCached()
