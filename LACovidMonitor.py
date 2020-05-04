@@ -223,14 +223,14 @@ def run(saveFigs=False, useCached=True):
             os.mkdir(DEFAULT_FIG_DIR)
             
         saveDir = os.path.join(DEFAULT_FIG_DIR,newDir)
-        if not os.path.exists(saveDir)
+        if not os.path.exists(saveDir):
             os.mkdir(saveDir)
             
-        f0.savefig(os.path.join(saveDir, 'f0.png')
-        f1.savefig(os.path.join(saveDir, 'f1.png')
-        f2.savefig(os.path.join(saveDir, 'f2.png')
-        f3.savefig(os.path.join(saveDir, 'f3.png')
-        f4.savefig(os.path.join(saveDir, 'f4.png')
+        f0.savefig(os.path.join(saveDir, 'f0.png'))
+        f1.savefig(os.path.join(saveDir, 'f1.png'))
+        f2.savefig(os.path.join(saveDir, 'f2.png'))
+        f3.savefig(os.path.join(saveDir, 'f3.png'))
+        f4.savefig(os.path.join(saveDir, 'f4.png'))
 
     return
 
