@@ -39,6 +39,7 @@ URL_ROOT = "http://publichealth.lacounty.gov/phcommon/public/media/"
 URL_MAIN = URL_ROOT + "mediaCOVIDdisplay.cfm?unit=media&ou=ph&prog=media"
 DEFAULT_CACHE_DIR = "./cache/"
 DEFAULT_FIG_DIR = "./plots/"
+CNX_TIMEOUT_SEC = 5 # Note, as sometimes server won't respond... just try again later
 
 """
 Get reports from local cache
@@ -59,15 +60,13 @@ def getReportsCached(cacheDir = DEFAULT_CACHE_DIR):
     
 """
 Pull reports from LADPH website, cache if requested
-(I've noticed during late evenings, their HTTP server slows wayyy down, 
-so I'd only try updating cache in the day...)
 """
 def getReports(cache = False, cacheDir = DEFAULT_CACHE_DIR):
     if cache and not os.path.exists(cacheDir):
         os.mkdir(cacheDir)
         
     print(f"Pulling reports from {SERVER_URL}, saveReportsToCache:{cache}")
-    cnx = http.client.HTTPConnection(SERVER_URL)
+    cnx = http.client.HTTPConnection(SERVER_URL, timeout=CNX_TIMEOUT_SEC)
     
     cnx.request("GET", URL_MAIN)
     rsp = cnx.getresponse()
@@ -106,9 +105,7 @@ returns a list of dictionaries
  currently,
   # new deaths, # total hospitalizations, report date, 
  ... will do testing reults next
- ... need to fix date (the first few report dates may be off)
- 
- mayb i should use doxygen.
+ ... need to fix date (the first few report dates may be off) 
 """
 def parseReports(reports):
     parsed = []
@@ -256,12 +253,15 @@ def run(saveFigs=False, useCached=True):
         updateCache = True 
         reports = getReports(updateCache)
     
-    # Parse the daily reports
-    parsed = parseReports(reports)
-    
-    # Make our plots
-    makePlots(parsed, saveFigs=saveFigs)
-    
+    if reports:
+        # Parse the daily reports
+        parsed = parseReports(reports)
+        
+        # Make our plots
+        makePlots(parsed, saveFigs=saveFigs)
+    else:
+        print("Unable to access reports.")
+        
     return
 
 if __name__ == "__main__":
