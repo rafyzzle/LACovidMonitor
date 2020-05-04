@@ -40,48 +40,42 @@ URL_MAIN = URL_ROOT + "mediaCOVIDdisplay.cfm?unit=media&ou=ph&prog=media"
 DEFAULT_CACHE_DIR = "./cache/"
 DEFAULT_FIG_DIR = "./plots/"
 
+"""
+Get reports from local cache
+"""
 def getReportsCached(cacheDir = DEFAULT_CACHE_DIR):
     files = os.listdir(cacheDir)
     files.sort()
     reportDatas = []
+    
+    print(f"Reading cached reports from {cacheDir}")
+    
     for file in files:
         if re.match(r"report[0-9]{3}", file):
             fid = open(cacheDir + '/' + file, 'r')
             reportDatas += [fid.read(),]
             fid.close()    
     return reportDatas
-
-# I'm not sure why I made this one..
-def getMainReportPageCached(cacheDir = DEFAULT_CACHE_DIR):
-    fid = open(f"{cacheDir}/main", 'r')
-    mainReportPage = fid.read()
-    fid.close()    
-    return mainReportPage
-
-def getMainReportPage(cache = False, cacheDir = DEFAULT_CACHE_DIR):
+    
+"""
+Pull reports from LADPH website, cache if requested
+(I've noticed during late evenings, their HTTP server slows wayyy down, 
+so I'd only try updating cache in the day...)
+"""
+def getReports(cache = False, cacheDir = DEFAULT_CACHE_DIR):
     if cache and not os.path.exists(cacheDir):
         os.mkdir(cacheDir)
         
+    print(f"Pulling reports from {SERVER_URL}, saveReportsToCache:{cache}")
     cnx = http.client.HTTPConnection(SERVER_URL)
+    
     cnx.request("GET", URL_MAIN)
     rsp = cnx.getresponse()
+    print(f"Grabbing list of reports, HTTP Response: {rsp.status} {rsp.reason}")
+    if (rsp.status != 200):
+        return
     
     mainReportPage = repr(rsp.read())
-    
-    if cache:
-        fn = f"main"
-        fid = open(f"{cacheDir}/{fn}", 'w')
-        fid.write(mainReportPage)
-        fid.close()
-    
-    return mainReportPage
-    
-def getReports(mainReportPage, cache = False, cacheDir = DEFAULT_CACHE_DIR):
-    if cache and not os.path.exists(cacheDir):
-        os.mkdir(cacheDir)
-        
-    cnx = http.client.HTTPConnection(SERVER_URL)
-    
     reportURLs = re.findall(r'Los Angeles County Announces.*?action="(?P<z>.*?)">', 
                mainReportPage)
     repNum = 0
@@ -89,6 +83,10 @@ def getReports(mainReportPage, cache = False, cacheDir = DEFAULT_CACHE_DIR):
     for url in reportURLs[::-1]:
         cnx.request("POST", URL_ROOT + url)
         rsp = cnx.getresponse()
+        print(f"Report #{repNum:03d}, HTTP Response: {rsp.status} {rsp.reason}")
+        if (rsp.status != 200):
+            return
+        
         reportData = repr(rsp.read())
         
         reportDatas += [reportData,]
@@ -102,6 +100,16 @@ def getReports(mainReportPage, cache = False, cacheDir = DEFAULT_CACHE_DIR):
             
     return reportDatas
 
+"""
+Parse reports
+returns a list of dictionaries
+ currently,
+  # new deaths, # total hospitalizations, report date, 
+ ... will do testing reults next
+ ... need to fix date (the first few report dates may be off)
+ 
+ mayb i should use doxygen.
+"""
 def parseReports(reports):
     parsed = []
     repNum = 0
@@ -153,6 +161,9 @@ def simpWinFilt(arr, winSz=7):
     
     return y,yM
 
+"""
+Make plots.. I'll doc this later.
+"""
 def makePlots(parsedReports, saveFigs=False):
     
     pR = parsedReports
@@ -233,6 +244,9 @@ def makePlots(parsedReports, saveFigs=False):
         f3.savefig(os.path.join(saveDir, 'f3.png'))
         f4.savefig(os.path.join(saveDir, 'f4.png'))    
 
+"""
+Main routine, will doc later.
+"""
 def run(saveFigs=False, useCached=True):
     if useCached:
         # Use local version of reports
@@ -240,8 +254,7 @@ def run(saveFigs=False, useCached=True):
     else:
         # Pull data from LA County Public Health and update our cache
         updateCache = True 
-        mainReportPg = getMainReportPage(updateCache)
-        reports = getReports(mainReportPg, updateCache)
+        reports = getReports(updateCache)
     
     # Parse the daily reports
     parsed = parseReports(reports)
