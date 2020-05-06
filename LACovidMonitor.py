@@ -291,6 +291,7 @@ def makePlots(parsedReports, saveFigs=False):
         f4.savefig(os.path.join(saveDir, 'f4.png')) 
         f5.savefig(os.path.join(saveDir, 'f5.png'))
         f6.savefig(os.path.join(saveDir, 'f6.png')) 
+        f7.savefig(os.path.join(saveDir, 'f7.png')) 
 
 """
 Main routine, will doc later.
