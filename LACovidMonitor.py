@@ -136,18 +136,13 @@ def parseReports(reports):
         rTestsWithResults = 0
         if match:
             rTestsWithResults = int(match[1].replace(',',''))
-        else:
-            print('No results.')
 
-        # Get # of available test results. (Testing Capacity)
+        # Get # of new positives.
         match = re.search(r'(?P<z>[0-9]+)[\s]New Cases', report)
         rNewCases = 0
         if match:
             rNewCases = int(match[1].replace(',',''))
-        else:
-            print('No results.')
-        
-        
+                
         parsed.append({'repNum': repNum, 
                        'date': rDate, 
                        'tHosp': rHospitalized, 
@@ -201,7 +196,7 @@ def makePlots(parsedReports, saveFigs=False):
     plt.ylim(bottom=0)
     winSz = 7
     winSzH = int(winSz/2)
-    [newHospMed, newHospAvg] = simpWinFilt(newHospitalized, winSz)
+    [newHospAvg, newHospMed] = simpWinFilt(newHospitalized, winSz)
     plt.plot(np.arange(winSzH,len(newHospitalized)-winSzH), newHospMed, 'b')
 
     # New hospitalizations with 7-day running average    
@@ -218,26 +213,30 @@ def makePlots(parsedReports, saveFigs=False):
     # Number of people passed away (per day) w/ 7-day running average
     f3 = plt.figure()
     numberDied = [p['dDeaths'] for p in pR]
-    plt.plot(numberDied, 'r.')
+    plt.plot(numberDied, 'r.', label='# newly deceased')
     plt.xlabel(f'Days')
-    plt.ylabel('# Deaths')
-    plt.title('LA County (Deaths)')
+    plt.ylabel('# Newly deceased')
+    plt.title('LA County (Newly deceased)')
     plt.grid('on')
     plt.xlim(left=0)
     plt.ylim(bottom=0)
-    [numberDiedMed, numberDiedAvg] = simpWinFilt(numberDied, winSz)
-    plt.plot(np.arange(winSzH,len(numberDied)-winSzH), numberDiedAvg, 'b')
+    [numberDiedAvg, numberDiedMed] = simpWinFilt(numberDied, winSz)
+    plt.plot(np.arange(winSzH,len(numberDied)-winSzH), numberDiedAvg, 'b',
+             label='7-day average')
+    plt.legend()
 
     # Number of people passed away (per day) w/ 7-day running median
     f4 = plt.figure()
-    plt.plot(numberDied, 'r.')
+    plt.plot(numberDied, 'r.', label='# newly deceased')
     plt.xlabel(f'Days')
-    plt.ylabel('# Deaths')
-    plt.title('LA County (Deaths)')
+    plt.ylabel('# Newly deceased')
+    plt.title('LA County (Newly deceased)')
     plt.grid('on')
     plt.xlim(left=0)
     plt.ylim(bottom=0)
-    plt.plot(np.arange(winSzH,len(numberDied)-winSzH), numberDiedMed, 'b')
+    plt.plot(np.arange(winSzH,len(numberDied)-winSzH), numberDiedMed, 'b',
+             label='7-day median')
+    plt.legend()
         
     f5 = plt.figure()
     totResults = [p['tTestsWithResults'] for p in pR]
@@ -251,13 +250,30 @@ def makePlots(parsedReports, saveFigs=False):
     f6 = plt.figure()
     newResults = totResults[1:]-totResults[0:-1]
     newResults[newResults > 25000] = 0 # Remove initial report of tests...
-    [newResultsMed, newResultsAvg] = simpWinFilt(newResults, winSz)
+    [newResultsAvg, newResultsMed] = simpWinFilt(newResults, winSz)
     plt.plot(np.arange(winSzH,len(newResults)-winSzH), newResultsMed, 'b')
     plt.plot(newResults, 'r.')
     plt.xlabel(f'Days')
     plt.ylabel('Newly available test results (est)')
     plt.title('Newly available test results (est)')
     plt.grid('on')
+    
+    f7 = plt.figure()
+    newResults = totResults[1:]-totResults[0:-1]
+    newCases = [p['dNewCases'] for p in pR]
+    
+    newCases = np.array(newCases)
+    newCasesTot = np.cumsum(newCases)
+    plt.plot(totResults, 'r.', label='# Available Test Results')
+    plt.plot(newCasesTot, 'b.', label='# COVID Positive')
+    plt.xlabel(f'Days (Last Upd {latest})')
+    plt.grid('on')
+    plt.legend()
+    plt.xlim(left=0)
+    plt.ylim(bottom=0)
+    
+    
+    
     
     if saveFigs:
         newDir = latest.replace(" ","_").replace(",","")
