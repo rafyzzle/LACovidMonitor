@@ -1,6 +1,6 @@
 # LACovidMonitor
 
-**NOTE: This tool is not at all affiliated with Los Angeles County**
+*NOTE: This tool is not affiliated with Los Angeles County*
 
 Simple independent tool to visualize COVID hospitalization, tests and death rates per
 LA County Public Health reports.
