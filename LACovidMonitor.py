@@ -21,10 +21,10 @@ Simple independent tool to visualize COVID hospitalization, tests and death rate
 LA County Public Health reports.
 
 To include some metrics not immediately available on http://dashboard.publichealth.lacounty.gov/covid19_surveillance_dashboard/
-  --> # of NEW Daily Hospitalizations [DONE]
-  --> # of Hospitalizations (Ever)    [DONE]
-  --> # Currently Hospitalized <--- still looking for a good source for this #'
-  --> # of Test Cases w/ Results      [TODO]
+  --> # of NEW Daily Hospitalizations
+  --> # of Hospitalizations (Ever)
+  --> # Currently Hospitalized
+  --> # of Test Cases w/ Results
   --> 7-day moving averages and medians
 
 
@@ -138,12 +138,21 @@ def parseReports(reports):
             rTestsWithResults = int(match[1].replace(',',''))
         else:
             print('No results.')
+
+        # Get # of available test results. (Testing Capacity)
+        match = re.search(r'(?P<z>[0-9]+)[\s]New Cases', report)
+        rNewCases = 0
+        if match:
+            rNewCases = int(match[1].replace(',',''))
+        else:
+            print('No results.')
         
         
         parsed.append({'repNum': repNum, 
                        'date': rDate, 
                        'tHosp': rHospitalized, 
                        'dDeaths': rDeaths,
+                       'dNewCases' : rNewCases,
                        'tTestsWithResults': rTestsWithResults})
         repNum = repNum + 1
         
@@ -232,10 +241,22 @@ def makePlots(parsedReports, saveFigs=False):
         
     f5 = plt.figure()
     totResults = [p['tTestsWithResults'] for p in pR]
+    totResults = np.array(totResults)
     plt.plot(totResults, 'r.')
     plt.xlabel(f'Days')
     plt.ylabel('Total # of Tests w/ Results')
     plt.title('Total # of Tests w/ Results')
+    plt.grid('on')
+    
+    f6 = plt.figure()
+    newResults = totResults[1:]-totResults[0:-1]
+    newResults[newResults > 25000] = 0 # Remove initial report of tests...
+    [newResultsMed, newResultsAvg] = simpWinFilt(newResults, winSz)
+    plt.plot(np.arange(winSzH,len(newResults)-winSzH), newResultsMed, 'b')
+    plt.plot(newResults, 'r.')
+    plt.xlabel(f'Days')
+    plt.ylabel('Newly available test results (est)')
+    plt.title('Newly available test results (est)')
     plt.grid('on')
     
     if saveFigs:
@@ -251,7 +272,9 @@ def makePlots(parsedReports, saveFigs=False):
         f1.savefig(os.path.join(saveDir, 'f1.png'))
         f2.savefig(os.path.join(saveDir, 'f2.png'))
         f3.savefig(os.path.join(saveDir, 'f3.png'))
-        f4.savefig(os.path.join(saveDir, 'f4.png'))    
+        f4.savefig(os.path.join(saveDir, 'f4.png')) 
+        f5.savefig(os.path.join(saveDir, 'f5.png'))
+        f6.savefig(os.path.join(saveDir, 'f6.png')) 
 
 """
 Main routine, will doc later.
