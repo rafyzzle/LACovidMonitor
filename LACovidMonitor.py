@@ -131,16 +131,20 @@ def parseReports(reports):
         else:
             rDeaths = 0
         
-        # TODO:
-        """
-        match = re.search(r'testing results [\w\s,%]+', report)
+        # Get # of available test results. (Testing Capacity)
+        match = re.search(r'Testing[\s]+capacity .*? (?P<numRes>[0-9,]+)', report)
+        rTestsWithResults = 0
         if match:
-            print(match)  
+            rTestsWithResults = int(match[1].replace(',',''))
         else:
             print('No results.')
-        """
         
-        parsed.append({'repNum': repNum, 'date': rDate, 'tHosp': rHospitalized, 'dDeaths': rDeaths})
+        
+        parsed.append({'repNum': repNum, 
+                       'date': rDate, 
+                       'tHosp': rHospitalized, 
+                       'dDeaths': rDeaths,
+                       'tTestsWithResults': rTestsWithResults})
         repNum = repNum + 1
         
     return parsed
@@ -226,6 +230,14 @@ def makePlots(parsedReports, saveFigs=False):
     plt.ylim(bottom=0)
     plt.plot(np.arange(winSzH,len(numberDied)-winSzH), numberDiedMed, 'b')
         
+    f5 = plt.figure()
+    totResults = [p['tTestsWithResults'] for p in pR]
+    plt.plot(totResults, 'r.')
+    plt.xlabel(f'Days')
+    plt.ylabel('Total # of Tests w/ Results')
+    plt.title('Total # of Tests w/ Results')
+    plt.grid('on')
+    
     if saveFigs:
         newDir = latest.replace(" ","_").replace(",","")
         if not os.path.exists(DEFAULT_FIG_DIR):
