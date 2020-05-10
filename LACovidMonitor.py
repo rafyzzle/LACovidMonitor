@@ -4,17 +4,7 @@
 Created on Sun May  3 17:17:54 2020
 
 @author: rafaelnuguid
-"""
 
-import numpy as np
-import matplotlib.pyplot as plt
-
-import os
-import http
-import re
-import datetime
-
-"""
 **** NOTE: This tool is not at all affiliated with Los Angeles County ****
 
 
@@ -35,6 +25,14 @@ Usage:
 
 """
 
+import numpy as np
+import matplotlib.pyplot as plt
+
+import os
+import http
+import re
+import datetime
+
 SERVER_URL = "publichealth.lacounty.gov"
 URL_ROOT = "http://publichealth.lacounty.gov/phcommon/public/media/"
 URL_MAIN = URL_ROOT + "mediaCOVIDdisplay.cfm?unit=media&ou=ph&prog=media"
@@ -42,10 +40,10 @@ DEFAULT_CACHE_DIR = "./cache/"
 DEFAULT_FIG_DIR = "./plots/"
 CNX_TIMEOUT_SEC = 5 # Note, as sometimes server won't respond... just try again later
 
-"""
-Get reports from local cache
-"""
+
 def getReportsCached(cacheDir = DEFAULT_CACHE_DIR):
+    """ Get reports from local cache """
+    
     files = os.listdir(cacheDir)
     files.sort()
     reportDatas = []
@@ -59,10 +57,9 @@ def getReportsCached(cacheDir = DEFAULT_CACHE_DIR):
             fid.close()    
     return reportDatas
     
-"""
-Pull reports from LADPH website, cache if requested
-"""
 def getReports(cache = False, cacheDir = DEFAULT_CACHE_DIR):
+    """ Get reports from LADPH, cache if requested """
+    
     if cache and not os.path.exists(cacheDir):
         os.mkdir(cacheDir)
         
@@ -101,15 +98,12 @@ def getReports(cache = False, cacheDir = DEFAULT_CACHE_DIR):
             
     return reportDatas
 
-"""
-Parse reports
-returns a list of dictionaries
- currently,
-  # new deaths, # total hospitalizations, report date, 
- ... will do testing reults next
- ... need to fix date (the first few report dates may be off) 
-"""
 def parseReports(reports):
+    """
+    Parse reports, (list of html reports...)
+    Will extract data using some ad-hoc regexs..
+    Returns a list of dictionaries, (1 elem per report)
+    """
     parsed = []
     repNum = 0
     for report in reports:
@@ -155,10 +149,8 @@ def parseReports(reports):
         
     return parsed
 
-"""
-Running average and median
-"""
 def simpWinFilt(arr, winSz=7):
+    """ Running avg and median """
     winSzH = int(winSz/2)
     y = np.ndarray(len(arr)-winSz + 1)
     yM = np.ndarray(len(arr)-winSz + 1)
@@ -168,10 +160,8 @@ def simpWinFilt(arr, winSz=7):
     
     return y,yM
 
-"""
-Make plots.. I'll doc this later.
-"""
 def makePlots(parsedReports, saveFigs=False):
+    """ Generate some ad-hoc plots from list of parsed reports """
     
     pR = parsedReports
     dates = np.array([d["date"] for d in pR])
@@ -301,10 +291,8 @@ def makePlots(parsedReports, saveFigs=False):
         f6.savefig(os.path.join(saveDir, 'f6.png')) 
         f7.savefig(os.path.join(saveDir, 'f7.png')) 
 
-"""
-Main routine, will doc later.
-"""
 def run(saveFigs=False, useCached=True):
+    """ Main routine """
     runRes = None
     
     if useCached:
