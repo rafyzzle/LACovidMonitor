@@ -52,7 +52,7 @@ def getReportsCached(cacheDir = DEFAULT_CACHE_DIR):
     print(f"Reading cached reports from {cacheDir}")
     
     for file in files:
-        if re.match(r"report[0-9]{3}", file):
+        if re.match(r"report[0-9]{3}.html", file):
             fid = open(cacheDir + '/' + file, 'r')
             reportDatas += [fid.read(),]
             fid.close()    
@@ -74,9 +74,10 @@ def getReports(cache = False, cacheDir = DEFAULT_CACHE_DIR):
     if (rsp.status != 200):
         return
     
-    mainReportPage = repr(rsp.read())
-    reportURLs = re.findall(r'Los Angeles County Announces.*?action="(?P<z>.*?)">', 
-               mainReportPage)
+    mainReportPage = rsp.read().decode('utf-8')    
+    reportURLs = re.findall(r'((Los Angeles County Announces.*?)|(\(COVID-19\) Advisory.*?))action="(?P<z>.*?)">', mainReportPage, re.S)
+    reportURLs = [z[3] for z in reportURLs] # get link
+    
     repNum = 0
     reportDatas = []
     for url in reportURLs[::-1]:
@@ -86,12 +87,12 @@ def getReports(cache = False, cacheDir = DEFAULT_CACHE_DIR):
         if (rsp.status != 200):
             return
         
-        reportData = repr(rsp.read())
+        reportData = rsp.read().decode('utf-8')
         
         reportDatas += [reportData,]
         
         if cache:
-            fn = f"report{repNum:03d}"
+            fn = f"report{repNum:03d}.html"
             repNum = repNum + 1
             fid = open(f"{cacheDir}/{fn}", 'w')
             fid.write(reportData)
@@ -113,11 +114,11 @@ def parseReports(reports):
     for report in reports:
 
         # Get date, (this doesn't always work fully yet)
-        match = re.search(r't(?P<z>[\w]+[\s][0-9]{2}, 2020)', report)
+        match = re.search(r'(?P<z>[\w]+[\s][0-9]{2}, 2020)', report)
         rDate = match[0] if match else '???'
         
         # Get # Hospitalized (Cumalative)
-        match = re.search(r'Hospitalized \(Ever\)\\t(?P<numb>[0-9]+)', report)
+        match = re.search(r'Hospitalized \(Ever\)[\s]*(?P<numb>[0-9]+)', report)
         rHospitalized = int(match[1]) if match else 0
 
         # Get # passed away from COVID for this day
@@ -273,8 +274,6 @@ def makePlots(parsedReports, saveFigs=False):
     plt.ylim(bottom=0)
     
     
-    
-    
     if saveFigs:
         newDir = latest.replace(" ","_").replace(",","")
         if not os.path.exists(DEFAULT_FIG_DIR):
@@ -297,6 +296,8 @@ def makePlots(parsedReports, saveFigs=False):
 Main routine, will doc later.
 """
 def run(saveFigs=False, useCached=True):
+    runRes = None
+    
     if useCached:
         # Use local version of reports
         reports = getReportsCached()
@@ -311,10 +312,12 @@ def run(saveFigs=False, useCached=True):
         
         # Make our plots
         makePlots(parsed, saveFigs=saveFigs)
+        
+        runRes = parsed
     else:
         print("Unable to access reports.")
         
-    return
+    return runRes
 
 if __name__ == "__main__":
     if (os.path.exists(DEFAULT_CACHE_DIR)):
