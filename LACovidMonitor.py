@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import os
 import http
 import re
+import datetime
 
 """
 **** NOTE: This tool is not at all affiliated with Los Angeles County ****
@@ -113,9 +114,9 @@ def parseReports(reports):
     repNum = 0
     for report in reports:
 
-        # Get date, (this doesn't always work fully yet)
+        # Get date
         match = re.search(r'(?P<z>[\w]+[\s][0-9]{2}, 2020)', report)
-        rDate = match[0] if match else '???'
+        rDate = datetime.datetime.strptime(match[0], "%B %d, %Y")
         
         # Get # Hospitalized (Cumalative)
         match = re.search(r'Hospitalized \(Ever\)[\s]*(?P<numb>[0-9]+)', report)
@@ -173,91 +174,99 @@ Make plots.. I'll doc this later.
 def makePlots(parsedReports, saveFigs=False):
     
     pR = parsedReports
-    latest = pR[-1]["date"]
+    dates = np.array([d["date"] for d in pR])
+    
+    latest = pR[-1]["date"].strftime('%B %d, %Y')
+    
     # Total hospitalizations
     f0 = plt.figure()
     numHospitalized = np.array([p['tHosp'] for p in pR])
-    plt.plot(numHospitalized, 'r.')
-    plt.xlabel(f'Days since first hospitalization report (Last Upd {latest})')
+    plt.plot(dates, numHospitalized, 'r.')
+    plt.xlabel(f'Date (Last Pt {latest})')
     plt.ylabel('# Ever Hospitalized (COVID-19)')
     plt.title('LA County (Hospitalizations)')
     plt.grid('on')
-    plt.xlim(left=0)
+    #plt.xlim(left=0)
+    f0.autofmt_xdate()
     plt.ylim(bottom=0)
     
     # New hospitalizations with 7-day running median
     f1 = plt.figure()
     newHospitalized = numHospitalized[1:] - numHospitalized[0:-1]
-    plt.plot(newHospitalized, 'r.')
-    plt.xlabel(f'Days since first hospitalization report (Last Upd {latest})')
+    plt.plot(dates[1:], newHospitalized, 'r.')
+    plt.xlabel(f'Date (Last Pt {latest})')
     plt.ylabel('# New Hospitalizations (COVID-19)')
     plt.title('LA County (Hospitalizations)')
     plt.grid('on')
-    plt.xlim(left=0)
     plt.ylim(bottom=0)
     winSz = 7
     winSzH = int(winSz/2)
     [newHospAvg, newHospMed] = simpWinFilt(newHospitalized, winSz)
-    plt.plot(np.arange(winSzH,len(newHospitalized)-winSzH), newHospMed, 'b')
-
+    plt.plot(dates[np.arange(winSzH,len(newHospitalized)-winSzH, dtype=int)], newHospMed, 'b')
+    f1.autofmt_xdate()
+    
     # New hospitalizations with 7-day running average    
     f2 = plt.figure()
-    plt.plot(newHospitalized, 'r.')
-    plt.xlabel(f'Days since first hospitalization report (Last Upd {latest})')
+    plt.plot(dates[1:], newHospitalized, 'r.')
+    plt.xlabel(f'Date (Last Pt {latest})')
     plt.ylabel('# New Hospitalizations (COVID-19)')
     plt.title('LA County (Hospitalizations)')
     plt.grid('on')
-    plt.xlim(left=0)
     plt.ylim(bottom=0)
-    plt.plot(np.arange(winSzH,len(newHospitalized)-winSzH), newHospAvg, 'b')
+    plt.plot(dates[np.arange(winSzH,len(newHospitalized)-winSzH)], newHospAvg, 'b')
+    f2.autofmt_xdate()
     
     # Number of people passed away (per day) w/ 7-day running average
     f3 = plt.figure()
     numberDied = [p['dDeaths'] for p in pR]
-    plt.plot(numberDied, 'r.', label='# newly deceased')
-    plt.xlabel(f'Days')
+    plt.plot(dates, numberDied, 'r.', label='# newly deceased')
+    plt.xlabel(f'Date (Last Pt {latest})')
     plt.ylabel('# Newly deceased')
     plt.title('LA County (Newly deceased)')
     plt.grid('on')
-    plt.xlim(left=0)
     plt.ylim(bottom=0)
     [numberDiedAvg, numberDiedMed] = simpWinFilt(numberDied, winSz)
-    plt.plot(np.arange(winSzH,len(numberDied)-winSzH), numberDiedAvg, 'b',
+    plt.plot(dates[np.arange(winSzH,len(numberDied)-winSzH)], numberDiedAvg, 'b',
              label='7-day average')
     plt.legend()
+    f3.autofmt_xdate()
 
     # Number of people passed away (per day) w/ 7-day running median
     f4 = plt.figure()
-    plt.plot(numberDied, 'r.', label='# newly deceased')
-    plt.xlabel(f'Days')
+    plt.plot(dates, numberDied, 'r.', label='# newly deceased')
+    plt.xlabel(f'Date (Last Pt {latest})')
     plt.ylabel('# Newly deceased')
     plt.title('LA County (Newly deceased)')
     plt.grid('on')
-    plt.xlim(left=0)
     plt.ylim(bottom=0)
-    plt.plot(np.arange(winSzH,len(numberDied)-winSzH), numberDiedMed, 'b',
+    plt.plot(dates[np.arange(winSzH,len(numberDied)-winSzH)], numberDiedMed, 'b',
              label='7-day median')
     plt.legend()
-        
+    f4.autofmt_xdate()  
+    
     f5 = plt.figure()
     totResults = [p['tTestsWithResults'] for p in pR]
     totResults = np.array(totResults)
-    plt.plot(totResults, 'r.')
-    plt.xlabel(f'Days')
+    plt.plot(dates, totResults, 'r.')
+    plt.xlabel(f'Date (Last Pt {latest})')
     plt.ylabel('Total # of Tests w/ Results')
     plt.title('Total # of Tests w/ Results')
     plt.grid('on')
+    plt.xlim(left=datetime.datetime(2020, 4, 1))
+    f5.autofmt_xdate()
     
     f6 = plt.figure()
     newResults = totResults[1:]-totResults[0:-1]
     newResults[newResults > 25000] = 0 # Remove initial report of tests...
     [newResultsAvg, newResultsMed] = simpWinFilt(newResults, winSz)
-    plt.plot(np.arange(winSzH,len(newResults)-winSzH), newResultsMed, 'b')
-    plt.plot(newResults, 'r.')
-    plt.xlabel(f'Days')
+    plt.plot(dates[np.arange(winSzH,len(newResults)-winSzH)], newResultsMed, 'b')
+    plt.plot(dates[1:], newResults, 'r.')
+    plt.xlabel(f'Date (Last Pt {latest})')
     plt.ylabel('Newly available test results (est)')
     plt.title('Newly available test results (est)')
     plt.grid('on')
+    plt.xlim(left=datetime.datetime(2020, 4, 1))
+    f6.autofmt_xdate()
     
     f7 = plt.figure()
     newResults = totResults[1:]-totResults[0:-1]
@@ -265,14 +274,14 @@ def makePlots(parsedReports, saveFigs=False):
     
     newCases = np.array(newCases)
     newCasesTot = np.cumsum(newCases)
-    plt.plot(totResults, 'r.', label='# Available Test Results')
-    plt.plot(newCasesTot, 'b.', label='# COVID Positive')
-    plt.xlabel(f'Days (Last Upd {latest})')
+    plt.plot(dates, totResults, 'r.', label='# Available Test Results')
+    plt.plot(dates, newCasesTot, 'b.', label='# COVID Positive')
+    plt.xlabel(f'Date (Last Pt {latest})')
     plt.grid('on')
     plt.legend()
-    plt.xlim(left=0)
+    plt.xlim(left=datetime.datetime(2020, 4, 1))
     plt.ylim(bottom=0)
-    
+    f7.autofmt_xdate()
     
     if saveFigs:
         newDir = latest.replace(" ","_").replace(",","")
