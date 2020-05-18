@@ -5,18 +5,23 @@ Created on Sun May  3 17:17:54 2020
 
 @author: rafaelnuguid
 
-**** NOTE: This tool is not at all affiliated with Los Angeles County ****
-
-
 Simple independent tool to visualize COVID hospitalization, tests and death rates per
 LA County Public Health reports.
-
-To include some metrics not immediately available on http://dashboard.publichealth.lacounty.gov/covid19_surveillance_dashboard/
+  
   --> # of NEW Daily Hospitalizations
   --> # of Hospitalizations (Ever)
   --> # Currently Hospitalized
   --> # of Test Cases w/ Results
   --> 7-day moving averages and medians
+
+Visit http://dashboard.publichealth.lacounty.gov/covid19_surveillance_dashboard/
+for LA County's official dashboard w/ additional visualizations.
+
+Note that I wrote this when the above metrics were not immidately available on 
+the dashboard.  As of now, May 17, a little over 2 weeks after the birth of 
+this tool, they are now also easily displayable along with more info.
+
+As such, lifetime of this little script has come to an end.
 
 
 Usage: 
@@ -138,13 +143,19 @@ def parseReports(reports):
         rNewCases = 0
         if match:
             rNewCases = int(match[1].replace(',',''))
-                
+            
+        # Get # currently hospitalized (they started reporting this on May 12!)
+        match = re.search(r'(?P<z>[0-9,]+)[\s]+people[\s]+who[\s]+are[\s]+currently[\s]+hospitalized', report)
+        rCurrHosp = int(match[1].replace(',','')) if match is not None else 0
+            
         parsed.append({'repNum': repNum, 
                        'date': rDate, 
                        'tHosp': rHospitalized, 
                        'dDeaths': rDeaths,
                        'dNewCases' : rNewCases,
-                       'tTestsWithResults': rTestsWithResults})
+                       'tTestsWithResults': rTestsWithResults,
+                       'dCurrHosp': rCurrHosp})
+        
         repNum = repNum + 1
         
     return parsed
@@ -273,6 +284,17 @@ def makePlots(parsedReports, saveFigs=False):
     plt.ylim(bottom=0)
     f7.autofmt_xdate()
     
+    f8 = plt.figure()
+    currHosp = np.array([p['dCurrHosp'] for p in pR])
+    plt.plot(dates, currHosp, 'ro--', label='# Currently Hospitalized')
+    plt.xlabel(f'Date (Last Pt {latest})')
+    plt.grid('on')
+    plt.legend()
+    plt.title('# Currently Hospitalized')
+    plt.xlim(left=datetime.datetime(2020,5,12))
+    plt.ylim(bottom=0)
+    f8.autofmt_xdate()
+    
     if saveFigs:
         newDir = latest.replace(" ","_").replace(",","")
         if not os.path.exists(DEFAULT_FIG_DIR):
@@ -289,7 +311,8 @@ def makePlots(parsedReports, saveFigs=False):
         f4.savefig(os.path.join(saveDir, 'f4.png')) 
         f5.savefig(os.path.join(saveDir, 'f5.png'))
         f6.savefig(os.path.join(saveDir, 'f6.png')) 
-        f7.savefig(os.path.join(saveDir, 'f7.png')) 
+        f7.savefig(os.path.join(saveDir, 'f7.png'))
+        f8.savefig(os.path.join(saveDir, 'f8.png')) 
 
 def run(saveFigs=False, useCached=True):
     """ Main routine """
