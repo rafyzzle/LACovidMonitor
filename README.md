@@ -21,7 +21,9 @@ As such, lifetime of this little script has come to an end.
 Usage: 
     Import the module and use the run() routine.  Make sure useCached is False
     if you want it to grab latest reports from LACPH
-
+    
+![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f9.png)
+![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f10.png)
 ![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f7.png)
 ![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f6.png)
 ![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f5.png)

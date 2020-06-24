@@ -62,12 +62,12 @@ def getReportsCached(cacheDir = DEFAULT_CACHE_DIR):
             fid.close()    
     return reportDatas
     
-def getReports(cache = False, cacheDir = DEFAULT_CACHE_DIR):
+def getReports(cache = False, cacheDir = DEFAULT_CACHE_DIR, onlyNew = False):
     """ Get reports from LADPH, cache if requested """
     
     if cache and not os.path.exists(cacheDir):
         os.mkdir(cacheDir)
-        
+     
     print(f"Pulling reports from {SERVER_URL}, saveReportsToCache:{cache}")
     cnx = http.client.HTTPConnection(SERVER_URL, timeout=CNX_TIMEOUT_SEC)
     
@@ -81,26 +81,55 @@ def getReports(cache = False, cacheDir = DEFAULT_CACHE_DIR):
     reportURLs = re.findall(r'((Los Angeles County Announces.*?)|(\(COVID-19\) Advisory.*?))action="(?P<z>.*?)">', mainReportPage, re.S)
     reportURLs = [z[3] for z in reportURLs] # get link
     
-    repNum = 0
-    reportDatas = []
-    for url in reportURLs[::-1]:
-        cnx.request("POST", URL_ROOT + url)
-        rsp = cnx.getresponse()
-        print(f"Report #{repNum:03d}, HTTP Response: {rsp.status} {rsp.reason}")
-        if (rsp.status != 200):
-            return
-        
-        reportData = rsp.read().decode('utf-8')
-        
-        reportDatas += [reportData,]
-        
-        if cache:
-            fn = f"report{repNum:03d}.html"
-            repNum = repNum + 1
-            fid = open(f"{cacheDir}/{fn}", 'w')
-            fid.write(reportData)
-            fid.close()
+    if onlyNew:     
+        print("Only looking for new reports...")
+        reports = getReportsCached(cacheDir)
+        if len(reportURLs) > len(reports):
+            print(f"Found new reports!")
+            repNum = len(reports)
+            reportDatas = reports
+            for url in reportURLs[-len(reports)-1::-1]:
+                cnx.request("POST", URL_ROOT + url)
+                rsp = cnx.getresponse()
+                print(f"Report #{repNum:03d}, HTTP Response: {rsp.status} {rsp.reason}")
+                if (rsp.status != 200):
+                    return
+                
+                reportData = rsp.read().decode('utf-8')
+                
+                reportDatas += [reportData,]
+                
+                if cache:
+                    fn = f"report{repNum:03d}.html"
+                    repNum = repNum + 1
+                    fid = open(f"{cacheDir}/{fn}", 'w')
+                    fid.write(reportData)
+                    fid.close()
+        else:
+            print("No new reports, only using cached..")
+            reportDatas = reports
             
+    else:
+        repNum = 0
+        reportDatas = []
+        for url in reportURLs[::-1]:
+            cnx.request("POST", URL_ROOT + url)
+            rsp = cnx.getresponse()
+            print(f"Report #{repNum:03d}, HTTP Response: {rsp.status} {rsp.reason}")
+            if (rsp.status != 200):
+                return
+            
+            reportData = rsp.read().decode('utf-8')
+            
+            reportDatas += [reportData,]
+            
+            if cache:
+                fn = f"report{repNum:03d}.html"
+                repNum = repNum + 1
+                fid = open(f"{cacheDir}/{fn}", 'w')
+                fid.write(reportData)
+                fid.close()
+                
     return reportDatas
 
 def parseReports(reports):
@@ -139,10 +168,8 @@ def parseReports(reports):
             rTestsWithResults = int(match[1].replace(',',''))
 
         # Get # of new positives.
-        match = re.search(r'(?P<z>[0-9]+)[\s]New Cases', report)
-        rNewCases = 0
-        if match:
-            rNewCases = int(match[1].replace(',',''))
+        match = re.search(r'(?P<z>[0-9,]+)[\s]New Cases', report)
+        rNewCases = int(match[1].replace(',','') if match is not None else 0)
             
         # Get # currently hospitalized (they started reporting this on May 12!)
         match = re.search(r'(?P<z>[0-9,]+)[\s]+people[\s]+who[\s]+are[\s]+currently[\s]+hospitalized', report)
@@ -258,7 +285,7 @@ def makePlots(parsedReports, saveFigs=False):
     
     f6 = plt.figure()
     newResults = totResults[1:]-totResults[0:-1]
-    newResults[newResults > 25000] = 0 # Remove initial report of tests...
+    newResults[newResults < 0] = 0
     [newResultsAvg, newResultsMed] = simpWinFilt(newResults, winSz)
     plt.plot(dates[np.arange(winSzH,len(newResults)-winSzH)], newResultsMed, 'b')
     plt.plot(dates[1:], newResults, 'r.')
@@ -295,6 +322,40 @@ def makePlots(parsedReports, saveFigs=False):
     plt.ylim(bottom=0)
     f8.autofmt_xdate()
     
+    f9 = plt.figure()
+    dPosRate = newCases[1:] / newResults
+    winSz = 7
+    winSzH = int(winSz/2)
+    [dPosRateAvg, dPosRateMed] = simpWinFilt(dPosRate, winSz)
+    plt.plot(dates[np.arange(winSzH,len(dPosRate)-winSzH)], dPosRateAvg*100, 'ro--', label='7-day Positivity Rate')
+    plt.xlabel(f'Date (Last Pt {latest})')
+    plt.grid('on')
+    plt.legend()
+    plt.title('7-day COVID positivity rate')
+    #plt.xlim(left=datetime.datetime(2020,4,1))
+    plt.ylim(bottom=0)
+    f9.autofmt_xdate()
+    
+    f10 = plt.figure()
+    winSz = 15
+    winSzH = int(winSz/2)
+    [dCasesInfectAvg, dCasesInfectMed] = simpWinFilt(newCases, winSz)
+    fudgeFactor = 5 # this is super rough
+    lacPopulation = 10000000
+    dCasesInfectRateEst = dCasesInfectAvg * winSz * fudgeFactor / lacPopulation * 100
+    plt.plot(dates[np.arange(winSz-1,len(newCases))], dCasesInfectRateEst, 'ro--', label='% Infected (cases last 2 weeks * 5/10mil)')
+    plt.xlabel(f'Date (Last Pt {latest})')
+    plt.grid('on')
+    plt.legend()
+    plt.title('Rough est, % LAC infected (2-week case count * ff=5 / pop=10mil)')
+    # Because i'm assuming constant fudge, this would be very misleading otherwise
+    # as I'm pretty sure fudge factor earlier is much higher.. perhaps could
+    # tie in with positivity rate or # of tests conducted... but that gets
+    # too out there..
+    plt.xlim(left=datetime.datetime(2020,6,1)) 
+    plt.ylim(bottom=0)
+    f10.autofmt_xdate()
+    
     if saveFigs:
         newDir = latest.replace(" ","_").replace(",","")
         if not os.path.exists(DEFAULT_FIG_DIR):
@@ -312,9 +373,11 @@ def makePlots(parsedReports, saveFigs=False):
         f5.savefig(os.path.join(saveDir, 'f5.png'))
         f6.savefig(os.path.join(saveDir, 'f6.png')) 
         f7.savefig(os.path.join(saveDir, 'f7.png'))
-        f8.savefig(os.path.join(saveDir, 'f8.png')) 
+        f8.savefig(os.path.join(saveDir, 'f8.png'))
+        f9.savefig(os.path.join(saveDir, 'f9.png')) 
+        f10.savefig(os.path.join(saveDir, 'f10.png')) 
 
-def run(saveFigs=False, useCached=True):
+def run(saveFigs=False, useCached=True, onlyNew=True):
     """ Main routine """
     runRes = None
     
@@ -324,7 +387,7 @@ def run(saveFigs=False, useCached=True):
     else:
         # Pull data from LA County Public Health and update our cache
         updateCache = True 
-        reports = getReports(updateCache)
+        reports = getReports(updateCache, onlyNew=onlyNew)
     
     if reports:
         # Parse the daily reports
