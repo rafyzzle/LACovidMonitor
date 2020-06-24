@@ -21,15 +21,15 @@ As such, lifetime of this little script has come to an end.
 Usage: 
     Import the module and use the run() routine.  Make sure useCached is False
     if you want it to grab latest reports from LACPH
-    
-![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f9.png)
-![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f10.png)
-![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f7.png)
-![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f6.png)
-![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f5.png)
-![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f4.png)
-![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f3.png)
-![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f2.png)
-![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f1.png)
-![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f0.png)
-![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/May_17_2020/f8.png)
+
+![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/June_23_2020/f9.png)
+![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/June_23_2020/f10.png)
+![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/June_23_2020/f7.png)
+![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/June_23_2020/f6.png)
+![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/June_23_2020/f5.png)
+![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/June_23_2020/f4.png)
+![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/June_23_2020/f3.png)
+![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/June_23_2020/f2.png)
+![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/June_23_2020/f1.png)
+![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/June_23_2020/f0.png)
+![](https://github.com/rafyzzle/LACovidMonitor/blob/master/plots/June_23_2020/f8.png)
