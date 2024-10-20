@@ -375,7 +375,9 @@ def makePlots(parsedReports, saveFigs=False):
         f7.savefig(os.path.join(saveDir, 'f7.png'))
         f8.savefig(os.path.join(saveDir, 'f8.png'))
         f9.savefig(os.path.join(saveDir, 'f9.png')) 
-        f10.savefig(os.path.join(saveDir, 'f10.png')) 
+        f10.savefig(os.path.join(saveDir, 'f10.png'))
+    else:
+        plt.show()
 
 def run(saveFigs=False, useCached=True, onlyNew=True):
     """ Main routine """
